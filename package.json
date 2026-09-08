@@ -1,0 +1,12 @@
+{
+  "name": "coohom-sso-server",
+  "version": "1.0.0",
+  "description": "Coohom SSO authentication server for miniapp redirect",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "cors": "^2.8.5",
+    "express": "^4.18.2"
+  }
+}
