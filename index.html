@@ -127,11 +127,12 @@
       }
       .scan-dialog .input-row {
         display: flex;
+        flex-direction: column;
         gap: 8px;
-        align-items: center;
+        align-items: center; 
       }
       .scan-dialog input {
-        flex: 1;
+        width: 100%;
         padding: 10px 12px;
         border: 1px solid #e2e8f0;
         border-radius: 8px;
@@ -139,20 +140,21 @@
         outline: none;
       }
       .scan-dialog input:focus {
-        border-color: #2563eb;
+        border-color: #07cc9b;
       }
       .scan-dialog .submit-btn {
         padding: 10px 20px;
         border: none;
+        width: 100%;
         border-radius: 8px;
-        background: #2563eb;
+        background: #07cc9b;
         color: #fff;
         font-size: 14px;
         font-weight: 500;
         cursor: pointer;
       }
       .scan-dialog .submit-btn:hover {
-        background: #1d4ed8;
+        background: #07cc9b;
       }
       .scan-dialog .submit-btn:disabled {
         background: #94a3b8;
@@ -250,7 +252,7 @@
   </head>
   <body>
     <div class="box" id="box">
-      <h2>Board Viewer</h2>
+      <img src="https://www.aixperia.com/img/grey.4eb6f6ae.png" style="height: 40px;" alt="">
       <p class="subtitle">Scan the production code on the board</p>
 
       <div class="scan-area">
@@ -261,7 +263,7 @@
         </div>
 
         <!-- Debug toggle (hidden for normal workers) -->
-        <span class="debug-toggle" onclick="toggleDebug()">⚙️ Debug</span>
+        <!-- <span class="debug-toggle" onclick="toggleDebug()">⚙️ Debug</span> -->
 
         <!-- Debug section: manual input for Design ID + Model ID -->
         <div class="debug-section" id="debugSection">
@@ -284,8 +286,8 @@
     <!-- Scan dialog -->
     <div class="scan-overlay" id="scanOverlay">
       <div class="scan-dialog">
-        <h3>📷 Scan Board</h3>
-        <p>Point the camera at the production code on the board.</p>
+        <h3>📷 Scan Panel</h3>
+        <p>Point the camera at the QR code on the panel.</p>
 
         <!-- Camera preview -->
         <div id="reader"></div>
