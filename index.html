@@ -1,264 +1,520 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
-<head>
-  <meta charset="utf-8">
-  <title>Board Viewer</title>
-  <meta name="viewport" content="width=device-width,initial-scale=1">
-  <style>
-    * { margin: 0; padding: 0; box-sizing: border-box; }
-    body {
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-      background: #f5f7fa;
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      min-height: 100vh;
-      padding: 20px;
-    }
-    .box {
-      background: #fff;
-      padding: 32px 36px;
-      border-radius: 12px;
-      box-shadow: 0 2px 12px rgba(0,0,0,0.08);
-      width: 380px;
-      max-width: 100%;
-      text-align: center;
-    }
-    .box.auto-loading .scan-area { display: none; }
-    .box.auto-loading h2 { margin-bottom: 0; }
-    h2 { text-align: center; margin-bottom: 8px; color: #1a1a2e; }
-    .subtitle { font-size: 13px; color: #94a3b8; margin-bottom: 24px; }
+  <head>
+    <meta charset="utf-8" />
+    <title>Board Viewer</title>
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+      body {
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+        background: #f5f7fa;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        min-height: 100vh;
+        padding: 20px;
+      }
+      .box {
+        background: #fff;
+        padding: 32px 36px;
+        border-radius: 12px;
+        box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
+        width: 380px;
+        max-width: 100%;
+        text-align: center;
+      }
+      .box.auto-loading .scan-area {
+        display: none;
+      }
+      .box.auto-loading h2 {
+        margin-bottom: 0;
+      }
+      h2 {
+        text-align: center;
+        margin-bottom: 8px;
+        color: #1a1a2e;
+      }
+      .subtitle {
+        font-size: 13px;
+        color: #94a3b8;
+        margin-bottom: 24px;
+      }
 
-    /* ── Scan button area ── */
-    .scan-btn {
-      width: 180px; height: 180px; margin: 0 auto 20px;
-      border: 2px dashed #cbd5e1; border-radius: 20px;
-      background: #f8fafc; cursor: pointer;
-      display: flex; flex-direction: column;
-      align-items: center; justify-content: center;
-      transition: all 0.2s;
-    }
-    .scan-btn:hover { border-color: #2563eb; background: #eff6ff; }
-    .scan-btn .icon { font-size: 48px; margin-bottom: 8px; }
-    .scan-btn .label { font-size: 14px; color: #64748b; }
+      #reader {
+        width: 100%;
+        margin-bottom: 16px;
+        border-radius: 10px;
+        overflow: hidden;
+      }
 
-    /* ── Code input overlay (scan popup) ── */
-    .scan-overlay {
-      display: none;
-      position: fixed; top: 0; left: 0; right: 0; bottom: 0;
-      background: rgba(0,0,0,0.4); z-index: 100;
-      align-items: center; justify-content: center;
-    }
-    .scan-overlay.show { display: flex; }
-    .scan-dialog {
-      background: #fff; width: 340px; padding: 24px; border-radius: 16px;
-      box-shadow: 0 8px 32px rgba(0,0,0,0.15);
-    }
-    .scan-dialog h3 { margin-bottom: 6px; color: #1a1a2e; }
-    .scan-dialog p { font-size: 13px; color: #94a3b8; margin-bottom: 16px; }
-    .scan-dialog .input-row {
-      display: flex; gap: 8px; align-items: center;
-    }
-    .scan-dialog input {
-      flex: 1; padding: 10px 12px;
-      border: 1px solid #e2e8f0; border-radius: 8px; font-size: 16px; outline: none;
-    }
-    .scan-dialog input:focus { border-color: #2563eb; }
-    .scan-dialog .submit-btn {
-      padding: 10px 20px; border: none; border-radius: 8px;
-      background: #2563eb; color: #fff; font-size: 14px; font-weight: 500; cursor: pointer;
-    }
-    .scan-dialog .submit-btn:hover { background: #1d4ed8; }
-    .scan-dialog .submit-btn:disabled { background: #94a3b8; cursor: not-allowed; }
-    .scan-dialog .close-btn {
-      margin-top: 12px; background: none; border: none; color: #94a3b8;
-      font-size: 13px; cursor: pointer; width: auto; padding: 4px 8px;
-    }
-    .scan-dialog .close-btn:hover { color: #475569; }
+      #reader video {
+        width: 100% !important;
+        border-radius: 10px;
+      }
 
-    /* ── Debug section (hidden by default) ── */
-    .debug-toggle {
-      margin-top: 16px; font-size: 12px; color: #cbd5e1;
-      cursor: pointer; display: inline-block;
-    }
-    .debug-toggle:hover { color: #94a3b8; }
-    .debug-section {
-      display: none; margin-top: 12px; padding-top: 16px;
-      border-top: 1px solid #e2e8f0; text-align: left;
-    }
-    .debug-section.show { display: block; }
-    .debug-section .form-group { margin-bottom: 10px; }
-    .debug-section label { display: block; font-size: 12px; color: #94a3b8; margin-bottom: 2px; }
-    .debug-section input {
-      width: 100%; padding: 8px 10px; font-size: 13px;
-      border: 1px solid #e2e8f0; border-radius: 6px; outline: none;
-    }
-    .debug-section input:focus { border-color: #94a3b8; }
-    .debug-section .debug-btn {
-      padding: 8px; font-size: 13px; background: #e2e8f0; color: #475569;
-    }
-    .debug-section .debug-btn:hover { background: #cbd5e1; }
+      #reader__scan_region {
+        min-height: 220px;
+      }
 
-    #status {
-      margin-top: 14px; padding: 10px; border-radius: 8px; font-size: 13px;
-      display: none; word-break: break-all;
-    }
-    #status.show { display: block; }
-    #status.error { background: #fee2e2; color: #991b1b; }
-    #status.info { background: #eff6ff; color: #1e40af; }
-    #status.success { background: #f0fdf4; color: #166534; }
-  </style>
-</head>
-<body>
-  <div class="box" id="box">
-    <h2>Board Viewer</h2>
-    <p class="subtitle">Scan the production code on the board</p>
+      #reader__dashboard {
+        display: none;
+      }
 
-    <div class="scan-area">
-      <!-- Scan button -->
-      <div class="scan-btn" id="scanBtn" onclick="openScanDialog()">
-        <span class="icon">📷</span>
-        <span class="label">Tap to Scan</span>
+      /* ── Scan button area ── */
+      .scan-btn {
+        width: 180px;
+        height: 180px;
+        margin: 0 auto 20px;
+        border: 2px dashed #cbd5e1;
+        border-radius: 20px;
+        background: #f8fafc;
+        cursor: pointer;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        transition: all 0.2s;
+      }
+      .scan-btn:hover {
+        border-color: #2563eb;
+        background: #eff6ff;
+      }
+      .scan-btn .icon {
+        font-size: 48px;
+        margin-bottom: 8px;
+      }
+      .scan-btn .label {
+        font-size: 14px;
+        color: #64748b;
+      }
+
+      /* ── Code input overlay (scan popup) ── */
+      .scan-overlay {
+        display: none;
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: rgba(0, 0, 0, 0.4);
+        z-index: 100;
+        align-items: center;
+        justify-content: center;
+      }
+      .scan-overlay.show {
+        display: flex;
+      }
+      .scan-dialog {
+        background: #fff;
+        width: 340px;
+        padding: 24px;
+        border-radius: 16px;
+        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.15);
+      }
+      .scan-dialog h3 {
+        margin-bottom: 6px;
+        color: #1a1a2e;
+      }
+      .scan-dialog p {
+        font-size: 13px;
+        color: #94a3b8;
+        margin-bottom: 16px;
+      }
+      .scan-dialog .input-row {
+        display: flex;
+        gap: 8px;
+        align-items: center;
+      }
+      .scan-dialog input {
+        flex: 1;
+        padding: 10px 12px;
+        border: 1px solid #e2e8f0;
+        border-radius: 8px;
+        font-size: 16px;
+        outline: none;
+      }
+      .scan-dialog input:focus {
+        border-color: #2563eb;
+      }
+      .scan-dialog .submit-btn {
+        padding: 10px 20px;
+        border: none;
+        border-radius: 8px;
+        background: #2563eb;
+        color: #fff;
+        font-size: 14px;
+        font-weight: 500;
+        cursor: pointer;
+      }
+      .scan-dialog .submit-btn:hover {
+        background: #1d4ed8;
+      }
+      .scan-dialog .submit-btn:disabled {
+        background: #94a3b8;
+        cursor: not-allowed;
+      }
+      .scan-dialog .close-btn {
+        margin-top: 12px;
+        background: none;
+        border: none;
+        color: #94a3b8;
+        font-size: 13px;
+        cursor: pointer;
+        width: auto;
+        padding: 4px 8px;
+      }
+      .scan-dialog .close-btn:hover {
+        color: #475569;
+      }
+
+      /* ── Debug section (hidden by default) ── */
+      .debug-toggle {
+        margin-top: 16px;
+        font-size: 12px;
+        color: #cbd5e1;
+        cursor: pointer;
+        display: inline-block;
+      }
+      .debug-toggle:hover {
+        color: #94a3b8;
+      }
+      .debug-section {
+        display: none;
+        margin-top: 12px;
+        padding-top: 16px;
+        border-top: 1px solid #e2e8f0;
+        text-align: left;
+      }
+      .debug-section.show {
+        display: block;
+      }
+      .debug-section .form-group {
+        margin-bottom: 10px;
+      }
+      .debug-section label {
+        display: block;
+        font-size: 12px;
+        color: #94a3b8;
+        margin-bottom: 2px;
+      }
+      .debug-section input {
+        width: 100%;
+        padding: 8px 10px;
+        font-size: 13px;
+        border: 1px solid #e2e8f0;
+        border-radius: 6px;
+        outline: none;
+      }
+      .debug-section input:focus {
+        border-color: #94a3b8;
+      }
+      .debug-section .debug-btn {
+        padding: 8px;
+        font-size: 13px;
+        background: #e2e8f0;
+        color: #475569;
+      }
+      .debug-section .debug-btn:hover {
+        background: #cbd5e1;
+      }
+
+      #status {
+        margin-top: 14px;
+        padding: 10px;
+        border-radius: 8px;
+        font-size: 13px;
+        display: none;
+        word-break: break-all;
+      }
+      #status.show {
+        display: block;
+      }
+      #status.error {
+        background: #fee2e2;
+        color: #991b1b;
+      }
+      #status.info {
+        background: #eff6ff;
+        color: #1e40af;
+      }
+      #status.success {
+        background: #f0fdf4;
+        color: #166534;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="box" id="box">
+      <h2>Board Viewer</h2>
+      <p class="subtitle">Scan the production code on the board</p>
+
+      <div class="scan-area">
+        <!-- Scan button -->
+        <div class="scan-btn" id="scanBtn" onclick="openScanDialog()">
+          <span class="icon">📷</span>
+          <span class="label">Tap to Scan</span>
+        </div>
+
+        <!-- Debug toggle (hidden for normal workers) -->
+        <span class="debug-toggle" onclick="toggleDebug()">⚙️ Debug</span>
+
+        <!-- Debug section: manual input for Design ID + Model ID -->
+        <div class="debug-section" id="debugSection">
+          <div class="form-group">
+            <label>Design ID</label>
+            <input id="designId" placeholder="Enter Design ID" />
+          </div>
+          <div class="form-group">
+            <label>Model ID</label>
+            <input id="modelId" placeholder="Enter Model ID" />
+          </div>
+          <button class="debug-btn" onclick="openViewer()">Open Viewer</button>
+        </div>
       </div>
 
-      <!-- Debug toggle (hidden for normal workers) -->
-      <span class="debug-toggle" onclick="toggleDebug()">⚙️ Debug</span>
-
-      <!-- Debug section: manual input for Design ID + Model ID -->
-      <div class="debug-section" id="debugSection">
-        <div class="form-group">
-          <label>Design ID</label>
-          <input id="designId" placeholder="Enter Design ID">
-        </div>
-        <div class="form-group">
-          <label>Model ID</label>
-          <input id="modelId" placeholder="Enter Model ID">
-        </div>
-        <button class="debug-btn" onclick="openViewer()">Open Viewer</button>
-      </div>
+      <div id="status"></div>
     </div>
 
-    <div id="status"></div>
-  </div>
+    <!-- Scan dialog (fake scan: input code) -->
+    <!-- Scan dialog -->
+    <div class="scan-overlay" id="scanOverlay">
+      <div class="scan-dialog">
+        <h3>📷 Scan Board</h3>
+        <p>Point the camera at the production code on the board.</p>
 
-  <!-- Scan dialog (fake scan: input code) -->
-  <div class="scan-overlay" id="scanOverlay">
-    <div class="scan-dialog">
-      <h3>📷 Scan Board</h3>
-      <p>Enter the production code printed on the board.</p>
-      <div class="input-row">
-        <input id="codeInput" type="text" inputmode="numeric" pattern="[0-9]*"
-               placeholder="Enter production code" autofocus
-               onkeydown="if(event.key==='Enter')submitCode()">
-        <button class="submit-btn" id="scanSubmit" onclick="submitCode()">Scan</button>
+        <!-- Camera preview -->
+        <div id="reader"></div>
+
+        <!-- Detected code -->
+        <div class="input-row">
+          <input
+            id="codeInput"
+            type="text"
+            placeholder="Scanned production code"
+          />
+
+          <button
+            class="submit-btn"
+            id="scanSubmit"
+            onclick="submitCode()"
+            disabled
+          >
+            Scan
+          </button>
+        </div>
+
+        <button class="close-btn" onclick="closeScanDialog()">Cancel</button>
       </div>
-      <button class="close-btn" onclick="closeScanDialog()">Cancel</button>
     </div>
-  </div>
-
-  <script>
-    var LANUCH_ID = null;
-    var configPromise = fetch('/config').then(function(r) { return r.json(); }).then(function(data) {
-      LANUCH_ID = data.launchId;
-    });
-
-    function show(msg, type) {
-      var el = document.getElementById('status');
-      el.textContent = msg;
-      el.className = 'show ' + type;
-    }
-
-    // ─── Scan dialog ───
-    function openScanDialog() {
-      document.getElementById('scanOverlay').className = 'scan-overlay show';
-      document.getElementById('codeInput').value = '';
-      document.getElementById('codeInput').focus();
-      document.getElementById('scanSubmit').disabled = false;
-    }
-    function closeScanDialog() {
-      document.getElementById('scanOverlay').className = 'scan-overlay';
-    }
-
-    function submitCode() {
-      var code = document.getElementById('codeInput').value.trim();
-      if (!code) return;
-      document.getElementById('scanSubmit').disabled = true;
-      document.getElementById('scanSubmit').textContent = 'Submitting...';
-      openViewer(code);
-    }
-
-    // ─── Debug toggle ───
-    function toggleDebug() {
-      var el = document.getElementById('debugSection');
-      el.className = 'debug-section' + (el.className.includes('show') ? '' : ' show');
-    }
-
-    // ─── Auto-load from URL ───
-    (function autoLoadFromUrl() {
-      var params = new URLSearchParams(window.location.search);
-      var code = params.get('code');
-      var designId = params.get('designId');
-      var modelId = params.get('modelId');
-
-      if (designId) document.getElementById('designId').value = designId;
-      if (modelId) document.getElementById('modelId').value = modelId;
-
-      if (code) {
-        document.getElementById('codeInput').value = code;
-        document.getElementById('box').className = 'box auto-loading';
-        show('Redirecting to viewer...', 'info');
-        configPromise.then(function() { setTimeout(function() { openViewer(code); }, 500); });
-      } else if (designId && modelId) {
-        document.getElementById('box').className = 'box auto-loading';
-        show('Redirecting to viewer...', 'info');
-        configPromise.then(function() { setTimeout(openViewer, 500); });
-      }
-    })();
-
-    async function openViewer(codeOverride) {
-      if (!LANUCH_ID) {
-        show('Loading config...', 'info');
-        await configPromise;
-      }
-      var code = codeOverride || '';
-      var designId = document.getElementById('designId').value.trim();
-      var modelId = document.getElementById('modelId').value.trim();
-
-      var hasCode = !!code;
-      var hasDesign = !!designId && !!modelId;
-      if (!hasCode && !hasDesign) {
-        closeScanDialog();
-        show('Enter a production code, or fill Design ID + Model ID in debug', 'error');
-        return;
-      }
-
-      show('Logging in...', 'info');
-
-      try {
-        var resp = await fetch('/login', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({})
+    <script src="https://unpkg.com/html5-qrcode"></script>
+    <script>
+      var LANUCH_ID = null;
+      var configPromise = fetch("/config")
+        .then(function (r) {
+          return r.json();
+        })
+        .then(function (data) {
+          LANUCH_ID = data.launchId;
         });
-        var data = await resp.json();
 
-        if (data.c === '0' && data.token) {
-          show('Redirecting to viewer...', 'info');
-          var miniappExtraParam = hasCode
-            ? 'code=' + encodeURIComponent(code)
-            : 'designId=' + encodeURIComponent(designId) + '&modelId=' + encodeURIComponent(modelId);
-          var miniappUrl = 'https://www.coohom.com/pub/saas/customized-cms/miniapp?launchMiniapp=' + LANUCH_ID +
-            '&miniappExtraParam=' + encodeURIComponent(miniappExtraParam);
-          var authUrl = 'https://www.coohom.com/api/saas/openapi/v2/redirect?token=' +
-            encodeURIComponent(data.token) + '&url=' + encodeURIComponent(miniappUrl) + '&locale=en_US';
-          window.location.href = authUrl;
-        } else {
-          show('SSO failed: ' + (data.m || 'Unknown error'), 'error');
-        }
-      } catch (err) {
-        show('Request failed: ' + err.message, 'error');
+      function show(msg, type) {
+        var el = document.getElementById("status");
+        el.textContent = msg;
+        el.className = "show " + type;
       }
-    }
-  </script>
-</body>
+
+      // ─── Scan dialog ───
+      var html5QrCode = null;
+      var isScanning = false;
+
+      // ─── Scan dialog ───
+      async function openScanDialog() {
+        document.getElementById("scanOverlay").className = "scan-overlay show";
+
+        document.getElementById("codeInput").value = "";
+
+        document.getElementById("scanSubmit").disabled = true;
+        document.getElementById("scanSubmit").textContent = "Scan";
+
+        try {
+          html5QrCode = new Html5Qrcode("reader");
+
+          isScanning = true;
+
+          await html5QrCode.start(
+            {
+              facingMode: "environment",
+            },
+            {
+              fps: 10,
+              qrbox: {
+                width: 250,
+                height: 150,
+              },
+            },
+            onScanSuccess,
+            onScanError,
+          );
+        } catch (err) {
+          console.error("Camera error:", err);
+
+          show(
+            "Unable to access camera. Please allow camera permission.",
+            "error",
+          );
+        }
+      }
+
+      // ─── QR / Barcode detected ───
+      async function onScanSuccess(decodedText, decodedResult) {
+        console.log("Scanned code:", decodedText);
+
+        // Put scanned code into input
+        document.getElementById("codeInput").value = decodedText;
+
+        // Enable Scan button
+        document.getElementById("scanSubmit").disabled = false;
+
+        // Stop camera
+        await stopScanner();
+      }
+
+      // ─── Scanner error ───
+      function onScanError(errorMessage) {
+        // Ignore continuous scanning errors.
+        // The library calls this while it is searching.
+      }
+
+      // ─── Stop camera ───
+      async function stopScanner() {
+        if (html5QrCode && isScanning) {
+          try {
+            await html5QrCode.stop();
+            html5QrCode.clear();
+          } catch (err) {
+            console.error("Error stopping scanner:", err);
+          }
+
+          isScanning = false;
+        }
+      }
+
+      // ─── Close dialog ───
+      async function closeScanDialog() {
+        await stopScanner();
+
+        document.getElementById("scanOverlay").className = "scan-overlay";
+      }
+
+      // ─── Submit scanned code ───
+      function submitCode() {
+        var code = document.getElementById("codeInput").value.trim();
+
+        if (!code) return;
+
+        document.getElementById("scanSubmit").disabled = true;
+        document.getElementById("scanSubmit").textContent = "Submitting...";
+
+        openViewer(code);
+      }
+
+      // ─── Debug toggle ───
+      function toggleDebug() {
+        var el = document.getElementById("debugSection");
+        el.className =
+          "debug-section" + (el.className.includes("show") ? "" : " show");
+      }
+
+      // ─── Auto-load from URL ───
+      (function autoLoadFromUrl() {
+        var params = new URLSearchParams(window.location.search);
+        var code = params.get("code");
+        var designId = params.get("designId");
+        var modelId = params.get("modelId");
+
+        if (designId) document.getElementById("designId").value = designId;
+        if (modelId) document.getElementById("modelId").value = modelId;
+
+        if (code) {
+          document.getElementById("codeInput").value = code;
+          document.getElementById("box").className = "box auto-loading";
+          show("Redirecting to viewer...", "info");
+          configPromise.then(function () {
+            setTimeout(function () {
+              openViewer(code);
+            }, 500);
+          });
+        } else if (designId && modelId) {
+          document.getElementById("box").className = "box auto-loading";
+          show("Redirecting to viewer...", "info");
+          configPromise.then(function () {
+            setTimeout(openViewer, 500);
+          });
+        }
+      })();
+
+      async function openViewer(codeOverride) {
+        if (!LANUCH_ID) {
+          show("Loading config...", "info");
+          await configPromise;
+        }
+        var code = codeOverride || "";
+        var designId = document.getElementById("designId").value.trim();
+        var modelId = document.getElementById("modelId").value.trim();
+
+        var hasCode = !!code;
+        var hasDesign = !!designId && !!modelId;
+        if (!hasCode && !hasDesign) {
+          closeScanDialog();
+          show(
+            "Enter a production code, or fill Design ID + Model ID in debug",
+            "error",
+          );
+          return;
+        }
+
+        show("Logging in...", "info");
+
+        try {
+          var resp = await fetch("/login", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({}),
+          });
+          var data = await resp.json();
+
+          if (data.c === "0" && data.token) {
+            show("Redirecting to viewer...", "info");
+            var miniappExtraParam = hasCode
+              ? "code=" + encodeURIComponent(code)
+              : "designId=" +
+                encodeURIComponent(designId) +
+                "&modelId=" +
+                encodeURIComponent(modelId);
+            var miniappUrl =
+              "https://www.coohom.com/pub/saas/customized-cms/miniapp?launchMiniapp=" +
+              LANUCH_ID +
+              "&miniappExtraParam=" +
+              encodeURIComponent(miniappExtraParam);
+            var authUrl =
+              "https://www.coohom.com/api/saas/openapi/v2/redirect?token=" +
+              encodeURIComponent(data.token) +
+              "&url=" +
+              encodeURIComponent(miniappUrl) +
+              "&locale=en_US";
+            window.location.href = authUrl;
+          } else {
+            show("SSO failed: " + (data.m || "Unknown error"), "error");
+          }
+        } catch (err) {
+          show("Request failed: " + err.message, "error");
+        }
+      }
+    </script>
+  </body>
 </html>
